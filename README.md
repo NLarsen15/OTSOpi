@@ -4,7 +4,7 @@ Repo for OTSO computations done on Raspberry Pi
 
 ![Vertical cut-off rigidity, last 7 days](https://nlarsen15.github.io/OTSOpi/all_stations_7d.png)
 
-Per-station plots: <https://nlarsen15.github.io/OTSOpi/>
+Daily averages over the past year: <https://nlarsen15.github.io/OTSOpi/>
 
 Hourly geomagnetic vertical cut-off rigidities for neutron monitor stations,
 computed with [OTSO](https://github.com/NLarsen15/OTSOpy) on a Raspberry Pi
@@ -33,13 +33,28 @@ updated. Hours missed (e.g. while offline) are backfilled while live data still
 covers them (~21 h). Live inputs are provisional and may differ from the final
 OMNI values.
 
-Model setup: IGRF + TSY01 (optimised), Kobel magnetopause, Boris-Buneman
+Model setup: IGRF + TSY01S (storm-time TSY01, optimised) with its built-in
+magnetopause, Boris-Buneman
 integration with 1 % gyro-step, rigidity scan 20 → 0 GV in 0.01 GV steps,
 start altitude 20 km.
 
+### Asymptotic viewing directions
+
+`data/asymptotic/<Station>/<YYYY-MM>.csv`, one row per hour, one column per
+rigidity level (`1GV` … `100GV`, 65 levels: 0.1 GV steps below 2 GV, widening
+to 5 GV steps above 50 GV). Each cell is `filter;latitude;longitude` as output
+by OTSO: the filter code for that trajectory, and the asymptotic direction in
+GEO coordinates (degrees, 0.01° precision). Same hours and inputs as the
+cut-off files.
+
 ## Plots
 
-The 7-day plots are drawn by a GitHub Action (`.github/workflows/plots.yml`)
+Two figures, one panel per station: the last 7 days hourly, and daily
+averages (days with at least 12 hourly values) over up to the last year.
+Below them, an interactive map per station shows the asymptotic viewing
+directions (1–100 GV, coloured by rigidity) with a time slider and play
+button covering the last 7 days, drawn in the browser from `asymptotic.json`.
+They are drawn by a GitHub Action (`.github/workflows/plots.yml`)
 each time new data is pushed, and published to GitHub Pages. No images are
 committed, so the history stays small. One-time setup: Settings → Pages →
 Source: **GitHub Actions**.

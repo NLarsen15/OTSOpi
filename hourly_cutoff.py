@@ -4,8 +4,9 @@ Hourly neutron monitor cut-off rigidity computation using OTSO with live data.
 Computes the vertical effective cut-off rigidity (Ru, Rc, Rl) for a set of
 neutron monitor stations at the top of the UTC hour LAG_HOURS ago, using NOAA
 real-time solar wind / geomagnetic data (livedata="ON"), and appends one row
-per hour to a CSV per station in OUTPUT_DIR, backfilling any missed hours
-still covered by the live data.
+per hour to a CSV per station in OUTPUT_DIR, plus asymptotic viewing directions
+at ASYM_LEVELS to monthly files in data/asymptotic/<Station>/. Missed hours still
+covered by the live data are backfilled.
 
 Intended to be run hourly from cron (see run_hourly.sh).
 """
@@ -25,9 +26,10 @@ STATIONS = {
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
-# TSY01 makes use of most of the live inputs (Dst, Pdyn, By, Bz, G1, G2).
-# Live data is not supported for TSY04 or TA16_RBF.
-EXTERNAL_MODEL = "TSY01"
+# TSY01S (storm-time TSY01) uses the live Pdyn, Dst, By, Bz, G2 and G3, and its own
+# built-in magnetopause (overriding "magnetopause" below). Live data is not supported
+# for TSY04 or TA16_RBF.
+EXTERNAL_MODEL = "TSY01S"
 OPTIMISE_TSY = True
 
 # Parallelism, sized for a 4-core Raspberry Pi (corenum * threadnum <= 4).
@@ -47,6 +49,20 @@ BACKFILL_HOURS = 21
 MAX_AGE_HOURS = 23
 
 CSV_HEADER = ["datetime_utc", "Ru_GV", "Rc_GV", "Rl_GV", "external_model", "computed_at_utc"]
+
+
+def _steps(start: float, stop: float, step: float) -> list:
+    return [round(start + i * step, 2) for i in range(round((stop - start) / step))]
+
+
+# Asymptotic viewing directions are computed at these rigidities (GV), finer at low
+# rigidity where directions change fastest. Changing this list changes the columns
+# of data/asymptotic files, so only do it at the start of a month.
+ASYM_LEVELS = (_steps(1, 2, 0.1) + _steps(2, 5, 0.25) + _steps(5, 10, 0.5) + _steps(10, 20, 1)
+               + _steps(20, 50, 2.5) + _steps(50, 100, 5) + [100])
+ASYM_DIR = os.path.join(OUTPUT_DIR, "asymptotic")
+ASYM_HEADER = ["datetime_utc"] + [f"{level:g}GV" for level in ASYM_LEVELS]
+DELIM = ";"
 
 
 def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREADNUM):
@@ -69,7 +85,9 @@ def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREA
                           "startaltitude": 20, "betaerror": 0.001,
                           "totalbetacheck": True, "adaptivestep": True}
 
-    computation_inputs = {"corenum": corenum, "threadnum": threadnum, "Verbose": False, "delim": ";"}
+    asymptotic_inputs = {"asymptotic": "YES", "asymlevels": ASYM_LEVELS, "unit": "GV"}
+
+    computation_inputs = {"corenum": corenum, "threadnum": threadnum, "Verbose": False, "delim": DELIM}
 
     data_retrieval_inputs = {"serverdata": "OFF", "livedata": "ON"}
 
@@ -80,26 +98,38 @@ def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREA
         magfield_params=magfield_inputs,
         rigidity_params=rigidity_inputs,
         integration_params=integration_inputs,
+        asymptotic_params=asymptotic_inputs,
         computation_params=computation_inputs,
         coordinate_params={"coordsystem": "GEO", "inputcoord": "GDZ"},
         data_retrieval_params=data_retrieval_inputs,
     )
-    return results[0]
+    # results[0]: Ru/Rc/Rl per station (columns); results[1]: one row per station,
+    # one "filter;lat;lon" cell per asymptotic level.
+    return results[0], results[1]
+
+
+def cutoff_path(name: str) -> str:
+    return os.path.join(OUTPUT_DIR, f"{name}_cutoff.csv")
+
+
+def asym_path(name: str, event_time: datetime) -> str:
+    return os.path.join(ASYM_DIR, name, f"{event_time:%Y-%m}.csv")
 
 
 def recorded_times(csv_path: str) -> set:
     if not os.path.exists(csv_path):
         return set()
     with open(csv_path, newline="") as f:
-        return {row[0] for row in csv.reader(f) if row and row[0] != CSV_HEADER[0]}
+        return {row[0] for row in csv.reader(f) if row and row[0] != "datetime_utc"}
 
 
-def append_row(csv_path: str, row: list) -> None:
+def append_row(csv_path: str, header: list, row: list) -> None:
     new_file = not os.path.exists(csv_path)
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
     with open(csv_path, "a", newline="") as f:
         writer = csv.writer(f)
         if new_file:
-            writer.writerow(CSV_HEADER)
+            writer.writerow(header)
         writer.writerow(row)
 
 
@@ -108,44 +138,73 @@ def sort_csv(csv_path: str) -> None:
     if not os.path.exists(csv_path):
         return
     with open(csv_path, newline="") as f:
-        rows = [row for row in csv.reader(f) if row and row[0] != CSV_HEADER[0]]
+        header, *rows = [row for row in csv.reader(f) if row]
     rows.sort(key=lambda row: row[0])
     tmp_path = csv_path + ".tmp"
     with open(tmp_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(CSV_HEADER)
+        writer.writerow(header)
         writer.writerows(rows)
     os.replace(tmp_path, csv_path)
 
 
-def compute_hour(event_time: datetime, csv_paths: dict) -> None:
+def asym_cells(asym_df, code: str) -> list:
+    """The station's "filter;lat;lon" cells in ASYM_LEVELS order, lat/lon to 0.01 deg."""
+    row = asym_df[asym_df["Station"] == code]
+    if row.empty:
+        return None
+    raw = [str(v) for v in row.drop(columns="Station").iloc[0].tolist()]
+    if len(raw) != len(ASYM_LEVELS):
+        raise ValueError(f"expected {len(ASYM_LEVELS)} asymptotic levels for {code}, got {len(raw)}")
+    cells = []
+    for cell in raw:
+        try:
+            flag, lat, lon = cell.split(DELIM)[:3]
+            cells.append(f"{int(float(flag))}{DELIM}{float(lat):.2f}{DELIM}{float(lon):.2f}")
+        except ValueError:
+            cells.append(cell)
+    return cells
+
+
+def compute_hour(event_time: datetime) -> None:
     timestamp = event_time.strftime("%Y-%m-%d %H:%M:%S")
-    df = compute(event_time)
+    cut_df, asym_df = compute(event_time)
     computed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     for name, code in STATIONS.items():
-        if timestamp in recorded_times(csv_paths[name]):
-            continue
-        if code not in df.columns:
-            print(f"{timestamp}: no result for {name} ({code})", file=sys.stderr)
-            continue
-        col = df[code]
-        append_row(csv_paths[name], [timestamp, col["Ru"], col["Rc"], col["Rl"],
-                                     EXTERNAL_MODEL, computed_at])
-        print(f"{timestamp}: {name} Ru={col['Ru']} Rc={col['Rc']} Rl={col['Rl']}", flush=True)
+        if timestamp not in recorded_times(cutoff_path(name)):
+            if code in cut_df.columns:
+                col = cut_df[code]
+                append_row(cutoff_path(name), CSV_HEADER,
+                           [timestamp, col["Ru"], col["Rc"], col["Rl"], EXTERNAL_MODEL, computed_at])
+                print(f"{timestamp}: {name} Ru={col['Ru']} Rc={col['Rc']} Rl={col['Rl']}", flush=True)
+            else:
+                print(f"{timestamp}: no cut-off result for {name} ({code})", file=sys.stderr)
+
+        if timestamp not in recorded_times(asym_path(name, event_time)):
+            cells = asym_cells(asym_df, code)
+            if cells is None:
+                print(f"{timestamp}: no asymptotic result for {name} ({code})", file=sys.stderr)
+            else:
+                append_row(asym_path(name, event_time), ASYM_HEADER, [timestamp] + cells)
 
 
 def main() -> int:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    csv_paths = {name: os.path.join(OUTPUT_DIR, f"{name}_cutoff.csv") for name in STATIONS}
-    recorded = {name: recorded_times(p) for name, p in csv_paths.items()}
-
     latest = (datetime.now(timezone.utc) - timedelta(hours=LAG_HOURS)).replace(
         minute=0, second=0, microsecond=0, tzinfo=None)
     candidates = [latest - timedelta(hours=h) for h in range(BACKFILL_HOURS - LAG_HOURS, -1, -1)]
-    missing = [t for t in candidates
-               if any(t.strftime("%Y-%m-%d %H:%M:%S") not in times for times in recorded.values())]
+
+    # An hour is done only when every station has both its cut-off and asymptotic row.
+    files = {cutoff_path(n) for n in STATIONS} | {asym_path(n, t) for n in STATIONS for t in candidates}
+    recorded = {p: recorded_times(p) for p in files}
+
+    def complete(t: datetime) -> bool:
+        ts = t.strftime("%Y-%m-%d %H:%M:%S")
+        return all(ts in recorded[cutoff_path(n)] and ts in recorded[asym_path(n, t)] for n in STATIONS)
+
+    missing = [t for t in candidates if not complete(t)]
 
     if not missing:
         print(f"{latest}: nothing to compute, all hours recorded.")
@@ -160,12 +219,12 @@ def main() -> int:
             print(f"{event_time}: too old for live data, skipping.", file=sys.stderr)
             continue
         try:
-            compute_hour(event_time, csv_paths)
+            compute_hour(event_time)
         except (Exception, SystemExit) as e:  # OTSO calls exit() on some input errors
             failures += 1
             print(f"{event_time}: computation failed ({e!r})", file=sys.stderr)
 
-    for p in csv_paths.values():
+    for p in files:
         sort_csv(p)
 
     return 1 if failures else 0
