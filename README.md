@@ -17,6 +17,13 @@ using live NOAA/Kyoto/GFZ space-weather inputs.
 | Lomnický štít | LMKS |
 | Moscow (IZMIRAN) | MOSC |
 
+The stations were selected following Mertens et al. (2025):
+
+> Mertens, C. J., Gronoff, G. P., & Phoenix, D. B. (2025). NAIRAS Version 3
+> atmospheric ionizing radiation validation: Comparisons to RaD‐X measurements.
+> *Space Weather*, 23(4), e2024SW004296.
+> [doi:10.1029/2024SW004296](https://doi.org/10.1029/2024SW004296)
+
 ## Data (`main` branch)
 
 `data/<Station>_cutoff.csv`, one row per hour:
