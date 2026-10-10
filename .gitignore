@@ -1,0 +1,30 @@
+# Local environment and the separately-versioned OTSO source
+OTSOenv/
+OTSOpy/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime state (logs, locks, plot builds live in ~/.local/state/nm-cutoffs)
+*.log
+*.lock
+.lock
+*.tmp
+NM_cutoffs/
+
+# Secrets: never commit keys, tokens or env files
+.env
+.env.*
+id_*
+*.pem
+*.key
+*.pub
+*token*
+*secret*
+.netrc
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
