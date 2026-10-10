@@ -47,6 +47,23 @@ by OTSO: the filter code for that trajectory, and the asymptotic direction in
 GEO coordinates (degrees, 0.01° precision). Same hours and inputs as the
 cut-off files.
 
+### Model inputs
+
+`data/inputs.csv`, one row per hour (shared by all stations): the inputs OTSO
+used, as reported by OTSO after its own processing of the live data.
+
+| Column | Meaning |
+|---|---|
+| `Kp`, `IOPT` | Kp index and the Tsyganenko IOPT derived from it |
+| `Vx_kms`, `Vy_kms`, `Vz_kms` | Solar wind velocity (km/s) |
+| `Bx_nT`, `By_nT`, `Bz_nT` | IMF components (nT; Bx is the 30-min average OTSO passes on) |
+| `By_avg30_nT`, `Bz_avg30_nT` | 30-min averaged IMF By, Bz (nT) |
+| `density_cm3`, `Pdyn_nPa` | Solar wind density (cm⁻³) and dynamic pressure (nPa) |
+| `Dst_nT` | Dst index (nT) |
+| `G1`, `G2`, `G3` | Tsyganenko G parameters |
+| `W1`–`W6`, `N_index`, `B_index`, `SYMH_nT` | Inputs for other Tsyganenko models (0 when not used) |
+| `data_source`, `external_model`, `otso_version`, `computed_at_utc` | Provenance |
+
 ## Plots
 
 Two figures, one panel per station: the last 7 days hourly, and daily

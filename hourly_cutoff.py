@@ -5,7 +5,8 @@ Computes the vertical effective cut-off rigidity (Ru, Rc, Rl) for a set of
 neutron monitor stations at the top of the UTC hour LAG_HOURS ago, using NOAA
 real-time solar wind / geomagnetic data (livedata="ON"), and appends one row
 per hour to a CSV per station in OUTPUT_DIR, plus asymptotic viewing directions
-at ASYM_LEVELS to monthly files in data/asymptotic/<Station>/. Missed hours still
+at ASYM_LEVELS to monthly files in data/asymptotic/<Station>/, and the model inputs
+OTSO used (solar wind, indices, G values) to data/inputs.csv. Missed hours still
 covered by the live data are backfilled.
 
 Intended to be run hourly from cron (see run_hourly.sh).
@@ -13,6 +14,7 @@ Intended to be run hourly from cron (see run_hourly.sh).
 
 import csv
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -64,6 +66,24 @@ ASYM_DIR = os.path.join(OUTPUT_DIR, "asymptotic")
 ASYM_HEADER = ["datetime_utc"] + [f"{level:g}GV" for level in ASYM_LEVELS]
 DELIM = ";"
 
+# Model inputs OTSO actually used for each hour, parsed from its input summary:
+# (label in OTSO's summary, column name). One row per hour in data/inputs.csv.
+INPUT_FIELDS = [
+    ("Kp", "Kp"), ("IOPT", "IOPT"),
+    ("Vx", "Vx_kms"), ("Vy", "Vy_kms"), ("Vz", "Vz_kms"),
+    ("Bx", "Bx_nT"), ("By", "By_nT"), ("Bz", "Bz_nT"),
+    ("By Average (30mins)", "By_avg30_nT"), ("Bz Average (30mins)", "Bz_avg30_nT"),
+    ("Density", "density_cm3"), ("Pdyn", "Pdyn_nPa"), ("Dst", "Dst_nT"),
+    ("G1", "G1"), ("G2", "G2"), ("G3", "G3"),
+    ("W1", "W1"), ("W2", "W2"), ("W3", "W3"), ("W4", "W4"), ("W5", "W5"), ("W6", "W6"),
+    ("N", "N_index"), ("B", "B_index"), ("SYM-H", "SYMH_nT"),
+]
+# OTSO's summary reports "User Inputted Data Used" even with livedata on, so the source is
+# recorded from this script's own setting instead.
+DATA_SOURCE = "live (NOAA SWPC RTSW; Kyoto WDC Dst; GFZ Kp)"
+INPUTS_HEADER = (["datetime_utc"] + [col for _, col in INPUT_FIELDS]
+                 + ["data_source", "external_model", "otso_version", "computed_at_utc"])
+
 
 def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREADNUM):
     # Imported here so plot_cutoffs.py (run in CI) can use STATIONS without OTSO installed.
@@ -104,8 +124,24 @@ def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREA
         data_retrieval_params=data_retrieval_inputs,
     )
     # results[0]: Ru/Rc/Rl per station (columns); results[1]: one row per station,
-    # one "filter;lat;lon" cell per asymptotic level.
-    return results[0], results[1]
+    # one "filter;lat;lon" cell per asymptotic level; results[-1]: OTSO's text summary
+    # of the inputs it used.
+    return results[0], results[1], results[-1]
+
+
+def inputs_path() -> str:
+    return os.path.join(OUTPUT_DIR, "inputs.csv")
+
+
+def parse_inputs(summary: str) -> dict:
+    """Pull the input values out of OTSO's summary text ("Label = value" lines)."""
+    values = {}
+    for label, col in INPUT_FIELDS:
+        m = re.search(rf"^\s*{re.escape(label)}\s*=\s*([-+0-9.eE]+)", summary, re.M)
+        values[col] = m.group(1) if m else ""
+    m = re.search(r"^OTSO Version:\s*(\S+)", summary, re.M)
+    values["otso_version"] = m.group(1) if m else ""
+    return values
 
 
 def cutoff_path(name: str) -> str:
@@ -168,8 +204,17 @@ def asym_cells(asym_df, code: str) -> list:
 
 def compute_hour(event_time: datetime) -> None:
     timestamp = event_time.strftime("%Y-%m-%d %H:%M:%S")
-    cut_df, asym_df = compute(event_time)
+    cut_df, asym_df, summary = compute(event_time)
     computed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+    if timestamp not in recorded_times(inputs_path()):
+        v = parse_inputs(summary)
+        missing = [col for _, col in INPUT_FIELDS if v[col] == ""]
+        if missing:
+            print(f"{timestamp}: inputs not found in OTSO summary: {', '.join(missing)}", file=sys.stderr)
+        append_row(inputs_path(), INPUTS_HEADER,
+                   [timestamp] + [v[col] for _, col in INPUT_FIELDS]
+                   + [DATA_SOURCE, EXTERNAL_MODEL, v["otso_version"], computed_at])
 
     for name, code in STATIONS.items():
         if timestamp not in recorded_times(cutoff_path(name)):
@@ -196,13 +241,15 @@ def main() -> int:
         minute=0, second=0, microsecond=0, tzinfo=None)
     candidates = [latest - timedelta(hours=h) for h in range(BACKFILL_HOURS - LAG_HOURS, -1, -1)]
 
-    # An hour is done only when every station has both its cut-off and asymptotic row.
-    files = {cutoff_path(n) for n in STATIONS} | {asym_path(n, t) for n in STATIONS for t in candidates}
+    # An hour is done only when its inputs and every station's cut-off and asymptotic rows are recorded.
+    files = ({inputs_path()} | {cutoff_path(n) for n in STATIONS}
+             | {asym_path(n, t) for n in STATIONS for t in candidates})
     recorded = {p: recorded_times(p) for p in files}
 
     def complete(t: datetime) -> bool:
         ts = t.strftime("%Y-%m-%d %H:%M:%S")
-        return all(ts in recorded[cutoff_path(n)] and ts in recorded[asym_path(n, t)] for n in STATIONS)
+        return ts in recorded[inputs_path()] and all(
+            ts in recorded[cutoff_path(n)] and ts in recorded[asym_path(n, t)] for n in STATIONS)
 
     missing = [t for t in candidates if not complete(t)]
 

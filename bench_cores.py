@@ -33,7 +33,7 @@ def main() -> int:
         times = []
         for _ in range(repeats):
             t0 = time.perf_counter()
-            df, _ = compute(event_time, corenum=corenum, threadnum=threadnum)
+            df = compute(event_time, corenum=corenum, threadnum=threadnum)[0]
             times.append(time.perf_counter() - t0)
         rc = df.loc["Rc"].to_dict()
         if reference is None:
