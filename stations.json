@@ -1,9 +1,9 @@
 {
   "stations": [
-    {"name": "Oulu", "code": "OULU", "lat": 65.05, "lon": 25.47},
-    {"name": "Thule", "code": "THUL", "lat": 76.5, "lon": -68.7},
-    {"name": "Lomnicky", "code": "LMKS", "lat": 49.2, "lon": 20.22},
-    {"name": "Moscow", "code": "MOSC", "lat": 55.47, "lon": 37.32},
+    {"name": "Oulu", "code": "OULU", "lat": 65.05, "lon": 25.47, "featured": true},
+    {"name": "Thule", "code": "THUL", "lat": 76.5, "lon": -68.7, "featured": true},
+    {"name": "Lomnicky", "code": "LMKS", "lat": 49.2, "lon": 20.22, "featured": true},
+    {"name": "Moscow", "code": "MOSC", "lat": 55.47, "lon": 37.32, "featured": true},
     {"name": "Camborne", "code": "CAMB", "lat": 50.22, "lon": -5.32, "custom": true},
     {"name": "Doi_Inthanon", "code": "PSNM", "lat": 18.59, "lon": 98.49},
     {"name": "Durham", "code": "DRHM", "lat": 43.1, "lon": -70.83, "custom": true},

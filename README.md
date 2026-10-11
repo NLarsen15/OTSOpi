@@ -93,17 +93,23 @@ used, as reported by OTSO after its own processing of the live data.
 | `W1`–`W6`, `N_index`, `B_index`, `SYMH_nT` | Inputs for other Tsyganenko models (0 when not used) |
 | `data_source`, `external_model`, `otso_version`, `computed_at_utc` | Provenance |
 
-## Plots
+## Website (GitHub Pages)
 
-Two figures, one panel per station: the last 7 days hourly, and daily
-averages (days with at least 12 hourly values) over up to the last year.
-Below them, an interactive map per station shows the asymptotic viewing
-directions (1–100 GV, coloured by rigidity) with a time slider and play
-button covering the last 7 days, drawn in the browser from `asymptotic.json`.
-They are drawn by a GitHub Action (`.github/workflows/plots.yml`)
-each time new data is pushed, and published to GitHub Pages. No images are
-committed, so the history stays small. One-time setup: Settings → Pages →
-Source: **GitHub Actions**.
+<https://nlarsen15.github.io/OTSOpi/> has two pages:
+
+- **Key stations** (landing page): the four stations of Mertens et al. (2025),
+  marked `"featured": true` in `stations.json`. It shows 7-day hourly and daily-average
+  plots, and the asymptotic-direction map with a time slider.
+- **All stations**: an overview table of every station (latest Ru/Rc/Rl,
+  24-hour change, 7-day range) sorted by cut-off, an interactive cut-off chart for
+  any station (7 days hourly or daily averages), and the asymptotic-direction map
+  for all stations, with each one switchable on or off.
+
+The site is built by a GitHub Action (`.github/workflows/plots.yml`) each time
+new data is pushed. It draws the figures and writes `cutoffs.json` and
+`asymptotic.json` for the interactive charts. No images are committed, so the
+history stays small. One-time setup: Settings → Pages → Source:
+**GitHub Actions**.
 
 ## Running
 
