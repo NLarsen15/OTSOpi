@@ -9,6 +9,7 @@
     {"name": "Durham", "code": "DRHM", "lat": 43.1, "lon": -70.83, "custom": true},
     {"name": "Gamak", "code": "GMAK", "lat": 35.59, "lon": 127.92, "custom": true},
     {"name": "South_Pole", "code": "SOPO", "lat": -90.0, "lon": 0.0},
-    {"name": "Tixie_Bay", "code": "TXBY", "lat": 71.58, "lon": 128.92}
+    {"name": "Tixie_Bay", "code": "TXBY", "lat": 71.58, "lon": 128.92},
+    {"name": "Fort_Smith", "code": "FSMT", "lat": 60.02, "lon": -111.93}
   ]
 }
