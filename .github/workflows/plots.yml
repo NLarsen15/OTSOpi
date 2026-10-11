@@ -6,7 +6,7 @@ name: Plots
 on:
   push:
     branches: [main]
-    paths: ["data/**", "stations.json", "assets/**", "plot_cutoffs.py", "hourly_cutoff.py", "stations.py",
+    paths: ["data/**", "stations.json", "assets/**", "pages/**", "requirements-plots.txt", "plot_cutoffs.py", "hourly_cutoff.py", "stations.py",
             ".github/workflows/plots.yml"]
   workflow_dispatch:
 
