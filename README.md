@@ -4,7 +4,7 @@ Repo for OTSO computations done on Raspberry Pi
 
 ![Vertical cut-off rigidity, last 7 days](https://nlarsen15.github.io/OTSOpi/all_stations_7d.png)
 
-Daily averages over the past year: <https://nlarsen15.github.io/OTSOpi/>
+Website: <https://nlarsen15.github.io/OTSOpi/> (key stations) · [all stations](https://nlarsen15.github.io/OTSOpi/stations.html)
 
 Hourly geomagnetic vertical cut-off rigidities for neutron monitor stations,
 computed with [OTSO](https://github.com/NLarsen15/OTSOpy) on a Raspberry Pi
