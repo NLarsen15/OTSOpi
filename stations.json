@@ -12,6 +12,7 @@
     {"name": "Tixie_Bay", "code": "TXBY", "lat": 71.58, "lon": 128.92},
     {"name": "Fort_Smith", "code": "FSMT", "lat": 60.02, "lon": -111.93},
     {"name": "Kerguelen", "code": "KERG", "lat": -49.35, "lon": 70.25},
-    {"name": "Jungfraujoch", "code": "JUNG", "lat": 46.55, "lon": 7.98}
+    {"name": "Jungfraujoch", "code": "JUNG", "lat": 46.55, "lon": 7.98},
+    {"name": "Mexico_City", "code": "MXCO", "lat": 19.33, "lon": -99.18}
   ]
 }
