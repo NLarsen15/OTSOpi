@@ -231,6 +231,11 @@ def compute_hour(event_time: datetime) -> None:
                 append_row(asym_path(name, event_time), ASYM_HEADER, [timestamp] + cells)
 
 
+def live_data_unavailable(e: BaseException) -> bool:
+    """True when OTSO could not download the live inputs (network or source down)."""
+    return isinstance(e, RuntimeError) and "could not be downloaded" in str(e)
+
+
 def main() -> int:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -257,7 +262,7 @@ def main() -> int:
         print(f"{len(missing)} hours to compute ({missing[0]} to {missing[-1]}).", flush=True)
 
     failures = 0
-    for event_time in missing:  # oldest first, since those are closest to expiring
+    for k, event_time in enumerate(missing):  # oldest first, since those are closest to expiring
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         if now - event_time > timedelta(hours=MAX_AGE_HOURS):
             print(f"{event_time}: too old for live data, skipping.", file=sys.stderr)
@@ -267,6 +272,14 @@ def main() -> int:
         except (Exception, SystemExit) as e:  # OTSO calls exit() on some input errors
             failures += 1
             print(f"{event_time}: computation failed ({e!r})", file=sys.stderr)
+            if live_data_unavailable(e):
+                # Every remaining hour needs the same downloads; stop instead of retrying
+                # each one. These hours stay missing and the next run tries them again.
+                left = len(missing) - k - 1
+                if left:
+                    print(f"Live data unavailable (network?); leaving the remaining {left} hour(s) "
+                          "for the next run.", file=sys.stderr)
+                break
 
     for p in files:
         sort_csv(p)

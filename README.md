@@ -109,8 +109,12 @@ Source: **GitHub Actions**.
 - `bench_cores.py` picks `corenum`/`threadnum` for the machine.
 
 ```
-5 * * * * /path/to/OTSOpi/run_hourly.sh
+5,35 * * * * /path/to/OTSOpi/run_hourly.sh
 ```
+
+The :35 run is a quick retry: it does nothing unless an hour is missing (e.g. after a
+network dropout). If the live data can't be downloaded, a run stops at the first
+failure and leaves the remaining hours for the next run.
 
 ## License
 
