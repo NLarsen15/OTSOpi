@@ -344,7 +344,7 @@ ASYM_JS = r"""
     lab.htmlFor = "asym-select"; lab.textContent = "Station";
     const sel = document.createElement("select");
     sel.id = "asym-select";
-    names.forEach(n => { const o = document.createElement("option"); o.value = n; o.textContent = shapeOf(n)[1] + " " + label(n); sel.appendChild(o); });
+    names.forEach(n => { const o = document.createElement("option"); o.value = n; o.textContent = label(n); sel.appendChild(o); });
     sel.value = current;
     sel.addEventListener("change", () => {
       current = sel.value; show(+slider.value);
@@ -375,14 +375,16 @@ ASYM_JS = r"""
   function traces(t) {
     const out = [];
     names.forEach(name => {
-      const st = data.stations[name], visible = isShown(name), sym = shapeOf(name)[0];
+      const st = data.stations[name], visible = isShown(name);
+      // Several stations: shape tells them apart. One at a time: plain circles + a diamond for the station.
+      const sym = single ? "circle" : shapeOf(name)[0], locSym = single ? "diamond" : sym;
       out.push({type: "scattergeo", mode: "markers", lat: st.lat[t], lon: st.lon[t], text: hoverR, visible,
                 marker: {symbol: sym, size: 8, color: logR, colorscale: ramp, cmin: 0, cmax: 2,
                          line: {width: 0}, showscale: false, colorbar},
                 hovertemplate: "<b>" + label(name) + "</b> %{text}<br>%{lat:.2f}°, %{lon:.2f}°<extra></extra>",
                 showlegend: false});
       out.push({type: "scattergeo", mode: "markers", lat: [st.loc[0]], lon: [st.loc[1]], visible,
-                marker: {symbol: sym, size: 13, color: "__TEXT__", line: {width: 0}},
+                marker: {symbol: locSym, size: 13, color: "__TEXT__", line: {width: 0}},
                 hovertemplate: "<b>" + label(name) + "</b> station<br>%{lat:.2f}°, %{lon:.2f}°<extra></extra>",
                 showlegend: false});
     });
@@ -608,10 +610,14 @@ def main() -> int:
 
     asym_text = """<p>Direction (geographic coordinates) from which particles arriving vertically at each station come
 from outside the magnetosphere, for rigidities from the station's upper cut-off Ru up to 100 GV;
-colour shows rigidity and marker shape the station (its location is the black marker of the same shape).
-{how} Drag the slider (or use the arrow keys) or press Play; hover a point for details.</p>"""
-    asym_intro = asym_text.format(how="Tick stations on or off.")
-    asym_intro_single = asym_text.format(how="Choose a station (the chart above and the table follow the same choice).")
+colour shows rigidity {markers}. {how} Drag the slider (or use the arrow keys) or press Play; hover a
+point for details.</p>"""
+    asym_intro = asym_text.format(
+        markers="and marker shape the station (its location is the black marker of the same shape)",
+        how="Tick stations on or off.")
+    asym_intro_single = asym_text.format(
+        markers="and the black diamond marks the station",
+        how="Choose a station (the chart above and the table follow the same choice).")
     plotly = f'<script src="{PLOTLY_JS}"></script>'
 
     page(os.path.join(out_dir, "index.html"), "Neutron monitor cut-offs", "index.html", f"""
