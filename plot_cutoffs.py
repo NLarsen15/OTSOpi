@@ -177,7 +177,9 @@ def draw(ax, name: str, df: pd.DataFrame, start: datetime, end: datetime, latest
 def small_multiples(frames: dict, start: datetime, end: datetime, title: str,
                     latest_label: str, footer: str, path: str) -> None:
     # Stations differ by several GV, so each gets its own y-scale.
-    fig, axes = plt.subplots(len(frames), 1, figsize=(10, 2.4 * len(frames)), sharex=True)
+    # Shorter panels when there are many stations, so the image stays a sensible size.
+    panel_h = 2.4 if len(frames) <= 6 else 1.7
+    fig, axes = plt.subplots(len(frames), 1, figsize=(10, panel_h * len(frames) + 0.6), sharex=True)
     for ax, (name, df) in zip(axes, frames.items()):
         draw(ax, name, df, start, end, latest_label)
     handles, labels = axes[0].get_legend_handles_labels()
@@ -283,7 +285,10 @@ Tick stations on or off, drag the slider (or use the arrow keys) or press Play; 
   // Shape identifies the station (colour is rigidity); cycles if there are more stations than shapes.
   const shapes = [["circle", "●"], ["square", "■"], ["diamond", "◆"], ["triangle-up", "▲"],
                   ["triangle-down", "▼"], ["star", "★"], ["cross", "✚"], ["x", "✖"],
-                  ["pentagon", "⬟"], ["hexagon", "⬢"], ["hourglass", "⧗"], ["star-triangle-up", "⟁"]];
+                  ["pentagon", "⬟"], ["hexagon", "⬢"], ["hourglass", "⧗"], ["star-triangle-up", "⟁"],
+                  ["triangle-left", "◀"], ["triangle-right", "▶"], ["star-square", "✦"],
+                  ["diamond-tall", "⧫"], ["octagon", "⯃"], ["star-diamond", "✧"],
+                  ["bowtie", "⋈"], ["hexagram", "✡"]];
   const symbols = names.map((_, i) => shapes[i % shapes.length][0]);
   const glyphs = names.map((_, i) => shapes[i % shapes.length][1]);
   const ramp = {ramp};
