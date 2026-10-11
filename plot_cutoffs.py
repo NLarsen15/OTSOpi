@@ -16,6 +16,7 @@ Headless: Agg backend.
 import csv
 import json
 import os
+import shutil
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -233,6 +234,10 @@ CSS = """
   th { color: TEXT2; font-weight: 600; }
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
   td.key::after { content: " ★"; color: SERIES; }
+  header.site { display: flex; align-items: center; gap: 16px; margin: 12px 0 4px; }
+  header.site img { height: 72px; width: auto; }
+  header.site h1 { margin: 0; }
+  @media (max-width: 700px) { header.site img { height: 52px; } header.site h1 { font-size: 1.5em; } }
 """
 
 
@@ -252,6 +257,8 @@ def page(path: str, title: str, current: str, body: str) -> None:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>{css()}</style>
 </head>
 <body>
@@ -494,6 +501,9 @@ def main() -> int:
         return 2
     out_dir = sys.argv[1]
     os.makedirs(out_dir, exist_ok=True)
+    assets = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+    for name in ("otso_logo.png", "favicon.png", "apple-touch-icon.png"):
+        shutil.copy(os.path.join(assets, name), out_dir)
 
     end = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0, tzinfo=None)
     data = {name: read_station(name) for name in STATIONS}
@@ -531,7 +541,7 @@ Tick stations on or off, drag the slider (or use the arrow keys) or press Play; 
     plotly = f'<script src="{PLOTLY_JS}"></script>'
 
     page(os.path.join(out_dir, "index.html"), "Neutron monitor cut-offs", "index.html", f"""
-<h1>Neutron monitor vertical cut-off rigidity</h1>
+<header class="site"><img src="otso_logo.png" alt="OTSO logo"><h1>Neutron monitor vertical cut-off rigidity</h1></header>
 <p>Hourly geomagnetic cut-off rigidities computed with OTSO ({EXTERNAL_MODEL} + IGRF, live space-weather
 inputs) for the four key stations of {MERTENS}: {", ".join(label(n) for n in FEATURED)}.
 <a href="stations.html">All {len(STATIONS)} stations →</a></p>
@@ -547,7 +557,7 @@ inputs) for the four key stations of {MERTENS}: {", ".join(label(n) for n in FEA
 """)
 
     page(os.path.join(out_dir, "stations.html"), "All neutron monitor stations", "stations.html", f"""
-<h1>All stations</h1>
+<header class="site"><img src="otso_logo.png" alt="OTSO logo"><h1>All stations</h1></header>
 <p>{len(STATIONS)} neutron monitor stations, sorted by effective cut-off Rc. ★ marks the key stations
 shown on the <a href="index.html">landing page</a>. Values are for the latest computed hour; click a
 station to plot it. Custom stations are computed at their geographic coordinates.</p>

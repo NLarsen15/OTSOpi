@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/otso_logo.png" alt="OTSO logo" width="170"></p>
+
 # OTSOpi
 
 Repo for OTSO computations done on Raspberry Pi
