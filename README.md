@@ -210,6 +210,3 @@ GPL-3.0, see [LICENSE](LICENSE).
 - **Larsen, N., Mishev, A., & Usoskin, I. (2023).** A new open-source geomagnetosphere
   propagation tool (OTSO) and its applications. *Journal of Geophysical Research:
   Space Physics*, 128, e2022JA031061. https://doi.org/10.1029/2022JA031061
-- **Mertens, C. J., Gronoff, G. P., & Phoenix, D. B. (2025).** NAIRAS Version 3
-  atmospheric ionizing radiation validation: Comparisons to RaD‐X measurements.
-  *Space Weather*, 23(4), e2024SW004296. https://doi.org/10.1029/2024SW004296
