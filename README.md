@@ -10,6 +10,8 @@ Hourly geomagnetic vertical cut-off rigidities for neutron monitor stations,
 computed with [OTSO](https://github.com/NLarsen15/OTSOpy) on a Raspberry Pi
 using live NOAA/Kyoto/GFZ space-weather inputs.
 
+The stations are listed in [`stations.json`](stations.json). The initial set is:
+
 | Station | OTSO code |
 |---|---|
 | Oulu | OULU |
@@ -17,12 +19,25 @@ using live NOAA/Kyoto/GFZ space-weather inputs.
 | Lomnický štít | LMKS |
 | Moscow (IZMIRAN) | MOSC |
 
-The stations were selected following Mertens et al. (2025):
+These stations were selected following Mertens et al. (2025):
 
 > Mertens, C. J., Gronoff, G. P., & Phoenix, D. B. (2025). NAIRAS Version 3
 > atmospheric ionizing radiation validation: Comparisons to RaD‐X measurements.
 > *Space Weather*, 23(4), e2024SW004296.
 > [doi:10.1029/2024SW004296](https://doi.org/10.1029/2024SW004296)
+
+### Adding or removing stations
+
+Any station in OTSO's built-in list can be added from the terminal. The command
+commits and pushes `stations.json`, and the next hourly run computes the new
+station, backfilling the last ~21 h:
+
+```
+./station search kiel        # find the OTSO code
+./station add KIEL           # add it (name defaults to OTSO's full name: Kiel)
+./station remove Kiel        # stop computing it; existing data is kept
+./station list
+```
 
 ## Data (`main` branch)
 
@@ -88,8 +103,9 @@ Source: **GitHub Actions**.
 - `hourly_cutoff.py` computes and appends to `data/`.
 - `plot_cutoffs.py OUT_DIR` writes the plots (run by the Action; needs only
   `requirements-plots.txt`, not OTSO).
-- `run_hourly.sh` is the cron entry point: compute, commit and push.
+- `run_hourly.sh` is the cron/systemd entry point: compute, commit and push.
   Logs go to `~/.local/state/nm-cutoffs/run.log`.
+- `./station` manages the station list (`stations.py`, `stations.json`).
 - `bench_cores.py` picks `corenum`/`threadnum` for the machine.
 
 ```

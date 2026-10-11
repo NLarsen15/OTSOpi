@@ -22,6 +22,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from stations import load_stations
 from hourly_cutoff import ASYM_LEVELS, DELIM, EXTERNAL_MODEL, OUTPUT_DIR as DATA_DIR, STATIONS
 
 WINDOW = timedelta(days=7)
@@ -40,9 +41,8 @@ ASYM_RAMP = ["#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf",
              "#1c5cab", "#184f95", "#104281", "#0d366b"]
 LAND = "#ecebe7"
 
-# Geographic station locations (lat, lon in degrees), as in OTSO's station list.
-STATION_COORDS = {"Oulu": (65.05, 25.47), "Thule": (76.5, -68.7),
-                  "Lomnicky": (49.2, 20.22), "Moscow": (55.47, 37.32)}
+# Geographic station locations (lat, lon in degrees), from stations.json.
+STATION_COORDS = {s["name"]: (s["lat"], s["lon"]) for s in load_stations()}
 PLOTLY_JS = "https://cdn.plot.ly/plotly-2.35.2.min.js"
 
 plt.rcParams.update({
@@ -280,8 +280,12 @@ Tick stations on or off, drag the slider (or use the arrow keys) or press Play; 
   if (!data.times.length) {{ label.textContent = "No asymptotic data in the last 7 days"; play.disabled = true; return; }}
 
   const names = {station_order};
-  const symbols = ["circle", "square", "diamond", "triangle-up"];
-  const glyphs = ["●", "■", "◆", "▲"];
+  // Shape identifies the station (colour is rigidity); cycles if there are more stations than shapes.
+  const shapes = [["circle", "●"], ["square", "■"], ["diamond", "◆"], ["triangle-up", "▲"],
+                  ["triangle-down", "▼"], ["star", "★"], ["cross", "✚"], ["x", "✖"],
+                  ["pentagon", "⬟"], ["hexagon", "⬢"], ["hourglass", "⧗"], ["star-triangle-up", "⟁"]];
+  const symbols = names.map((_, i) => shapes[i % shapes.length][0]);
+  const glyphs = names.map((_, i) => shapes[i % shapes.length][1]);
   const ramp = {ramp};
   const logR = data.levels.map(Math.log10);
   const hoverR = data.levels.map(r => r + " GV");

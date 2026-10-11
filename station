@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Manage the OTSOpi station list:  ./station list | search TEXT | add CODE [NAME] | remove NAME
+REPO="$(cd "$(dirname "$0")" && pwd)"
+exec "$REPO/OTSOenv/bin/python" "$REPO/stations.py" "$@"

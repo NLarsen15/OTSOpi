@@ -18,13 +18,10 @@ import re
 import sys
 from datetime import datetime, timedelta, timezone
 
-# Station display name -> OTSO station code
-STATIONS = {
-    "Oulu": "OULU",
-    "Thule": "THUL",
-    "Lomnicky": "LMKS",
-    "Moscow": "MOSC",
-}
+from stations import load_stations
+
+# Station display name -> OTSO station code, from stations.json (managed with ./station).
+STATIONS = {s["name"]: s["code"] for s in load_stations()}
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
