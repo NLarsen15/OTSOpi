@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/otso_logo.png" alt="OTSO logo" width="170"></p>
+<p align="center"><img src="assets/otso_logo.png" alt="OTSO logo" width="113"></p>
 
 # OTSOpi
 
@@ -112,6 +112,35 @@ new data is pushed. It draws the figures and writes `cutoffs.json` and
 `asymptotic.json` for the interactive charts. No images are committed, so the
 history stays small. One-time setup: Settings → Pages → Source:
 **GitHub Actions**.
+
+## The OTSOpi
+
+<img src="assets/otsopi.jpg" alt="The OTSOpi: a Raspberry Pi 5 in a black case with an OTSO polar-bear sticker" width="280" align="right">
+
+Everything is computed by a Raspberry Pi 5 running around the clock:
+
+| | |
+|---|---|
+| Board | Raspberry Pi 5 Model B (quad-core Arm Cortex-A76, 2.4 GHz) |
+| Memory | 8 GB |
+| Storage | 64 GB microSD |
+| OS | Ubuntu Server 24.04.5 LTS (64-bit) |
+| Software | Python 3.12, OTSO 1.3.8 (1 process × 4 threads) |
+| Schedule | systemd timer at :05 past every hour (+ :35 retry), and 3 min after boot |
+
+**Time per hour** (cut-off scan 20 → 0 GV in 0.01 GV steps plus asymptotic
+directions at 65 rigidities, per station):
+
+| Stations | Time per hour |
+|---|---|
+| 15 | ≈ 1 min (median 54 s, range 49–79 s) |
+| 4 | ≈ 30 s |
+| none missing (:35 check) | ≈ 2 s |
+
+Backfilling after an outage runs at the same rate: 19 hours for 15 stations took
+about 18 minutes. Each extra station adds roughly 3 s per hour (measured 11 Oct 2026).
+
+<br clear="right">
 
 ## Running
 

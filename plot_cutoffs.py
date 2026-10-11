@@ -8,7 +8,8 @@ Writes into OUT_DIR, which the Plots workflow publishes to GitHub Pages:
   index.html     landing page: the featured (key) stations - 7-day hourly and daily-average
                  PNGs, and the asymptotic-direction map
   stations.html  all stations - overview table, interactive cut-off chart per station, and
-                 the asymptotic-direction map
+                 the asymptotic-direction map (one station at a time)
+  otsopi.html    the Raspberry Pi that computes everything: photo, specs, timings
   asymptotic.json, cutoffs.json   data for the interactive charts
 Headless: Agg backend.
 """
@@ -235,9 +236,16 @@ CSS = """
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
   td.key::after { content: " ★"; color: SERIES; }
   header.site { display: flex; align-items: center; gap: 16px; margin: 12px 0 4px; }
-  header.site img { height: 110px; width: auto; }
+  header.site img { height: 220px; width: auto; }
   header.site h1 { margin: 0; }
-  @media (max-width: 700px) { header.site img { height: 72px; } header.site h1 { font-size: 1.5em; } }
+  .pi { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+  .pi figure { margin: 0; flex: 0 1 340px; }
+  .pi figure img { width: 100%; border-radius: 10px; }
+  .pi figcaption { color: TEXT2; font-size: 14px; margin-top: 6px; }
+  .pi .specs { flex: 1 1 420px; }
+  table.kv td:first-child { color: TEXT2; white-space: nowrap; }
+  table.kv td { text-align: left; white-space: normal; }
+  @media (max-width: 700px) { header.site img { height: 144px; } header.site h1 { font-size: 1.5em; } }
 """
 
 
@@ -247,7 +255,7 @@ def css() -> str:
 
 
 def page(path: str, title: str, current: str, body: str) -> None:
-    links = [("index.html", "Key stations"), ("stations.html", "All stations")]
+    links = [("index.html", "Key stations"), ("stations.html", "All stations"), ("otsopi.html", "The OTSOpi")]
     nav = " ".join(f'<a href="{href}"' + (' aria-current="page"' if href == current else "") + f">{text}</a>"
                    for href, text in links)
     with open(path, "w") as f:
@@ -531,7 +539,7 @@ def main() -> int:
     out_dir = sys.argv[1]
     os.makedirs(out_dir, exist_ok=True)
     assets = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-    for name in ("otso_logo.png", "favicon.png", "apple-touch-icon.png"):
+    for name in ("otso_logo.png", "favicon.png", "apple-touch-icon.png", "otsopi.jpg"):
         shutil.copy(os.path.join(assets, name), out_dir)
 
     end = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0, tzinfo=None)
@@ -602,6 +610,41 @@ station to plot it.</p>
 <h2>Asymptotic viewing directions, last 7 days</h2>
 {asym_intro_single}
 {asym_section(list(STATIONS), single=True)}
+""")
+
+    page(os.path.join(out_dir, "otsopi.html"), "The OTSOpi", "otsopi.html", f"""
+<header class="site"><img src="otso_logo.png" alt="OTSO logo"><h1>The OTSOpi</h1></header>
+<p>All results on this site are computed by a Raspberry Pi 5 running <a href="https://github.com/NLarsen15/OTSOpy">OTSO</a>
+around the clock. Every hour it downloads the latest space-weather data, traces cosmic-ray trajectories
+through the geomagnetic field for each station, and pushes the results to
+<a href="https://github.com/NLarsen15/OTSOpi">GitHub</a>, which rebuilds this website.</p>
+<div class="pi">
+<figure><img src="otsopi.jpg" alt="The OTSOpi: a Raspberry Pi 5 in a black case with an OTSO polar-bear sticker">
+<figcaption>The OTSOpi.</figcaption></figure>
+<div class="specs">
+<h2>Hardware and software</h2>
+<table class="kv">
+<tr><td>Board</td><td>Raspberry Pi 5 Model B (quad-core Arm Cortex-A76, 2.4 GHz)</td></tr>
+<tr><td>Memory</td><td>8 GB</td></tr>
+<tr><td>Storage</td><td>64 GB microSD</td></tr>
+<tr><td>Operating system</td><td>Ubuntu Server 24.04.5 LTS (64-bit)</td></tr>
+<tr><td>Software</td><td>Python 3.12, OTSO 1.3.8</td></tr>
+<tr><td>Parallelism</td><td>1 process × 4 threads</td></tr>
+<tr><td>Schedule</td><td>systemd timer at :05 past every hour (plus a :35 retry), and 3 min after boot</td></tr>
+</table>
+<h2>Computation</h2>
+<table class="kv">
+<tr><td>Each hour</td><td>{len(STATIONS)} stations: vertical cut-off scan 20 → 0 GV in 0.01 GV steps, plus
+asymptotic directions at {len(ASYM_LEVELS)} rigidities (1–100 GV) per station</td></tr>
+<tr><td>Field model</td><td>IGRF + {EXTERNAL_MODEL} with live inputs (NOAA SWPC, Kyoto WDC Dst, GFZ Kp), 1 % gyro-step Boris-Buneman integration</td></tr>
+<tr><td>Time per hour</td><td><b>≈ 1 minute for 15 stations</b> (median 54 s, range 49–79 s) · ≈ 30 s for 4 stations ·
+≈ 2 s for the :35 check when nothing is missing</td></tr>
+<tr><td>Backfill</td><td>After an outage, missed hours (up to ~21 h back) are caught up at the same rate:
+19 hours for 15 stations took about 18 minutes</td></tr>
+</table>
+<p class="muted">Timings measured on 11 October 2026; each extra station adds roughly 3 s per hour.</p>
+</div>
+</div>
 """)
     return 0
 
