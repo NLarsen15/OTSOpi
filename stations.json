@@ -7,6 +7,7 @@
     {"name": "Camborne", "code": "CAMB", "lat": 50.22, "lon": -5.32, "custom": true},
     {"name": "Doi_Inthanon", "code": "PSNM", "lat": 18.59, "lon": 98.49},
     {"name": "Durham", "code": "DRHM", "lat": 43.1, "lon": -70.83, "custom": true},
-    {"name": "Gamak", "code": "GMAK", "lat": 35.59, "lon": 127.92, "custom": true}
+    {"name": "Gamak", "code": "GMAK", "lat": 35.59, "lon": 127.92, "custom": true},
+    {"name": "South_Pole", "code": "SOPO", "lat": -90.0, "lon": 0.0}
   ]
 }
