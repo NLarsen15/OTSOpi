@@ -245,6 +245,17 @@ CSS = """
   .pi .specs { flex: 1 1 420px; }
   table.kv td:first-child { color: TEXT2; white-space: nowrap; }
   table.kv td { text-align: left; white-space: normal; }
+  ol.timeline { list-style: none; padding: 0; margin: 16px 0; border-left: 2px solid GRID; }
+  ol.timeline li { position: relative; padding: 0 0 18px 22px; }
+  ol.timeline li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px;
+                           border-radius: 50%; background: SERIES; }
+  ol.timeline .when { font-weight: 700; color: TEXT; }
+  ol.timeline p { margin: 4px 0 0; }
+  .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  @media (max-width: 700px) { .gallery { grid-template-columns: 1fr; } }
+  .gallery figure { margin: 0; }
+  .gallery img { width: 100%; border: 1px solid GRID; border-radius: 6px; }
+  .gallery figcaption { color: TEXT2; font-size: 14px; margin-top: 6px; }
   @media (max-width: 700px) { header.site img { height: 144px; } header.site h1 { font-size: 1.5em; } }
 """
 
@@ -255,7 +266,8 @@ def css() -> str:
 
 
 def page(path: str, title: str, current: str, body: str) -> None:
-    links = [("index.html", "Key stations"), ("stations.html", "All stations"), ("otsopi.html", "The OTSOpi")]
+    links = [("index.html", "Key stations"), ("stations.html", "All stations"), ("otsopi.html", "The OTSOpi"),
+             ("history.html", "History")]
     nav = " ".join(f'<a href="{href}"' + (' aria-current="page"' if href == current else "") + f">{text}</a>"
                    for href, text in links)
     with open(path, "w") as f:
@@ -541,6 +553,7 @@ def main() -> int:
     assets = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
     for name in ("otso_logo.png", "favicon.png", "apple-touch-icon.png", "otsopi.jpg"):
         shutil.copy(os.path.join(assets, name), out_dir)
+    shutil.copytree(os.path.join(assets, "history"), os.path.join(out_dir, "history"), dirs_exist_ok=True)
 
     end = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0, tzinfo=None)
     data = {name: read_station(name) for name in STATIONS}
@@ -648,6 +661,46 @@ through the magnetopause, or after 100 R<sub>E</sub> of path</td></tr>
 </table>
 <p class="muted">Timings measured on 11 October 2026; each extra station adds roughly 3 s per hour.</p>
 </div>
+</div>
+""")
+
+    page(os.path.join(out_dir, "history.html"), "OTSOpi history", "history.html", f"""
+<header class="site"><img src="otso_logo.png" alt="OTSO logo"><h1>History</h1></header>
+<p>OTSOpi grew out of a simple question after the great geomagnetic storm of May 2024: could cut-off
+rigidities be computed automatically, as conditions change, rather than after the fact? This page
+records how the idea developed, from a first trial in 2024 to the current OTSOpi.</p>
+<ol class="timeline">
+<li><span class="when">October 2022 · OTSO</span>
+<p>The first version of <a href="https://github.com/NLarsen15/OTSO">OTSO</a>, the Open-source
+geomagneToSphere prOpagation tool (Fortran and Python), for computing cut-off rigidities and asymptotic
+directions of neutron monitors.</p></li>
+<li><span class="when">May 2024 · The Gannon storm</span>
+<p>The geomagnetic storm of 10–11 May 2024, the strongest in two decades, together with my growing
+interest in automating programs, sparked the idea of a machine that computes cut-offs on its own.</p></li>
+<li><span class="when">September–October 2024 · The first OTSO-Pi</span>
+<p>A Raspberry Pi in my office running the original OTSO, computing apparent cut-off rigidities from
+20 to 0 GV in 0.01 GV steps with a rigidity scan, using IGRF13 and TSY01. Each computation took about
+8 minutes for Oulu and about 2 minutes for Cornwall. It ran through the severe geomagnetic storm of
+10–11 October 2024, when Oulu's effective cut-off fell to 0 GV and Cornwall's from about 3.2 to
+2.2 GV (plots below).</p></li>
+<li><span class="when">October 2024 · Live data in OTSO</span>
+<p>A live-data option was added to OTSO, fetching real-time solar-wind and geomagnetic indices directly.</p></li>
+<li><span class="when">2025 · OTSOpy</span>
+<p><a href="https://github.com/NLarsen15/OTSOpy">OTSOpy</a>, OTSO rebuilt as a pip-installable Python
+package, carried the live-data option forward.</p></li>
+<li><span class="when">October 2026 · OTSOpi</span>
+<p>OTSOpi, revived on a Raspberry Pi 5 with OTSOpy: hourly vertical cut-offs and asymptotic directions
+for {len(STATIONS)} neutron monitors, published automatically to this website
+(<a href="otsopi.html">details</a>).</p></li>
+</ol>
+<h2>Legacy: the first OTSO-Pi (2024)</h2>
+<p>Effective cut-offs from the first OTSO-Pi, 14 September to 14 October 2024, including the storm of
+10–11 October 2024.</p>
+<div class="gallery">
+<figure><img src="history/2024_oulu_cutoff.png" alt="2024 OTSO-Pi effective cut-off for Oulu, 14 September to 14 October 2024">
+<figcaption>Oulu effective cut-off, September–October 2024.</figcaption></figure>
+<figure><img src="history/2024_cornwall_cutoff.png" alt="2024 OTSO-Pi effective cut-off for Cornwall, 14 September to 14 October 2024">
+<figcaption>Cornwall effective cut-off, September–October 2024.</figcaption></figure>
 </div>
 """)
     return 0
