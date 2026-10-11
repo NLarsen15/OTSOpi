@@ -21,7 +21,10 @@ from datetime import datetime, timedelta, timezone
 from stations import load_stations
 
 # Station display name -> OTSO station code, from stations.json (managed with ./station).
+# Custom stations (not in OTSO's list) are passed to OTSO as customlocations under their code.
 STATIONS = {s["name"]: s["code"] for s in load_stations()}
+CUSTOM_LOCATIONS = [[s["code"], s["lat"], s["lon"]] for s in load_stations() if s.get("custom")]
+OTSO_STATIONS = [s["code"] for s in load_stations() if not s.get("custom")]
 
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
@@ -109,7 +112,8 @@ def compute(event_time: datetime, corenum: int = CORENUM, threadnum: int = THREA
     data_retrieval_inputs = {"serverdata": "OFF", "livedata": "ON"}
 
     results = cutoff(
-        Stations=list(STATIONS.values()),
+        Stations=OTSO_STATIONS,
+        customlocations=CUSTOM_LOCATIONS or None,
         cutoff_comp="Vertical",
         datetime_params=date_inputs,
         magfield_params=magfield_inputs,

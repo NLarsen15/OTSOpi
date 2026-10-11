@@ -7,6 +7,9 @@ stations and plot_cutoffs.py draws them. Use the ./station wrapper:
     ./station list                 configured stations
     ./station search TEXT          search OTSO's built-in station list
     ./station add CODE [NAME]      add an OTSO station, commit and push
+    ./station add-custom NAME LAT LON [CODE]
+                                   add a station that is not in OTSO's list (e.g. a new
+                                   monitor) by geographic coordinates, commit and push
     ./station remove NAME          stop computing a station (its data is kept), commit and push
 
 add/remove take --no-push to only edit stations.json locally. They wait for any
@@ -95,7 +98,8 @@ def locked_edit(change, message: str, push: bool) -> None:
 
 def cmd_list(_args):
     for s in load_stations():
-        print(f"{s['name']:14s} {s['code']:8s} lat {s['lat']:7.2f}  lon {s['lon']:8.2f}")
+        print(f"{s['name']:14s} {s['code']:8s} lat {s['lat']:7.2f}  lon {s['lon']:8.2f}"
+              + ("  (custom location)" if s.get("custom") else ""))
 
 
 def cmd_search(args):
@@ -131,6 +135,31 @@ def cmd_add(args):
     print(f"{name} ({code}) will be computed from the next run, including backfill of the last ~21 h.")
 
 
+def cmd_add_custom(args):
+    name = args.name
+    if not NAME_RE.match(name):
+        sys.exit(f"Name '{name}' must start with a letter and use only letters, digits, '-' or '_'.")
+    if not -90 <= args.lat <= 90:
+        sys.exit("Latitude must be between -90 and 90 degrees.")
+    if not -180 <= args.lon <= 360:
+        sys.exit("Longitude must be between -180 and 360 degrees (east positive).")
+    code = (args.code or re.sub(r"[^A-Za-z0-9]", "", name)[:4]).upper()
+    if not re.match(r"^[A-Z][A-Z0-9]{1,7}$", code):
+        sys.exit(f"Code '{code}' must be 2-8 letters/digits, starting with a letter.")
+    if code in {r[0].upper() for r in otso_station_list()}:
+        sys.exit(f"'{code}' is an OTSO station code; choose another code for the custom station.")
+    lat, lon = round(args.lat, 4), lon180(args.lon)
+
+    def change(stations):
+        if any(s["name"].lower() == name.lower() or s["code"] == code for s in stations):
+            sys.exit(f"{name} ({code}) is already configured.")
+        stations.append({"name": name, "code": code, "lat": lat, "lon": lon, "custom": True})
+
+    locked_edit(change, f"Add custom station {name} ({code}, {lat}, {lon})", push=not args.no_push)
+    print(f"{name} ({code}) at {lat}, {lon} will be computed from the next run, "
+          "including backfill of the last ~21 h.")
+
+
 def cmd_remove(args):
     def change(stations):
         keep = [s for s in stations if s["name"].lower() != args.name.lower()]
@@ -156,6 +185,13 @@ def main() -> int:
     a.add_argument("name", nargs="?", help="display/file name (default: OTSO's full name)")
     a.add_argument("--no-push", action="store_true", help="only edit stations.json locally")
     a.set_defaults(func=cmd_add)
+    c = sub.add_parser("add-custom", help="add a station by coordinates (not in OTSO's list)")
+    c.add_argument("name")
+    c.add_argument("lat", type=float, help="geographic latitude, degrees north")
+    c.add_argument("lon", type=float, help="geographic longitude, degrees east (west negative)")
+    c.add_argument("code", nargs="?", help="short code used in OTSO output (default: from the name)")
+    c.add_argument("--no-push", action="store_true", help="only edit stations.json locally")
+    c.set_defaults(func=cmd_add_custom)
     r = sub.add_parser("remove", help="stop computing a station (data is kept)")
     r.add_argument("name")
     r.add_argument("--no-push", action="store_true", help="only edit stations.json locally")

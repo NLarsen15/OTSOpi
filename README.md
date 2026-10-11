@@ -39,6 +39,13 @@ station, backfilling the last ~21 h:
 ./station list
 ```
 
+Monitors that are not in OTSO's list (e.g. new installations) can be added by
+geographic coordinates; they are passed to OTSO as custom locations:
+
+```
+./station add-custom Camborne 50.22 -5.32 CAMB   # name, lat (°N), lon (°E), code
+```
+
 ## Data (`main` branch)
 
 `data/<Station>_cutoff.csv`, one row per hour:
