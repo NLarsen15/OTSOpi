@@ -2,7 +2,14 @@
 
 # OTSOpi
 
-Repo for OTSO computations done on Raspberry Pi
+> [!NOTE]
+> **A hobby project.** OTSOpi is a personal side project by Nicholas Larsen, the
+> developer of [OTSO](https://github.com/NLarsen15/OTSOpy), to test whether a
+> **near-real-time database of geomagnetic cut-off rigidities** is feasible. Can a
+> single low-cost Raspberry Pi, running OTSO on live space-weather data, keep an
+> hourly record for neutron monitors around the world up to date and publish it
+> openly? The results are experimental and provided as-is. Live inputs are
+> provisional and may differ from the final data, and the record may have gaps.
 
 ![Vertical cut-off rigidity, last 7 days](https://nlarsen15.github.io/OTSOpi/all_stations_7d.png)
 
@@ -64,10 +71,15 @@ updated. Hours missed (e.g. while offline) are backfilled while live data still
 covers them (~21 h). Live inputs are provisional and may differ from the final
 OMNI values.
 
-Model setup: IGRF + TSY01S (storm-time TSY01, optimised) with its built-in
-magnetopause, Boris-Buneman
-integration with 1 % gyro-step, rigidity scan 20 → 0 GV in 0.01 GV steps,
-start altitude 20 km.
+Model setup:
+
+- **Field model:** IGRF + TSY01S (storm-time TSY01, optimised) with its built-in
+  magnetopause, driven by the live inputs above.
+- **Integration model:** Boris-Buneman with an adaptive time step limited to
+  1 % of the gyro-period and a 0.001 % energy (β) check. Trajectories start at
+  20 km altitude and end on re-entry below 20 km, escape through the
+  magnetopause, or after 100 Rₑ of path.
+- **Rigidity scan:** 20 → 0 GV in 0.01 GV steps (vertical incidence).
 
 ### Asymptotic viewing directions
 

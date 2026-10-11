@@ -636,7 +636,11 @@ through the geomagnetic field for each station, and pushes the results to
 <table class="kv">
 <tr><td>Each hour</td><td>{len(STATIONS)} stations: vertical cut-off scan 20 → 0 GV in 0.01 GV steps, plus
 asymptotic directions at {len(ASYM_LEVELS)} rigidities (1–100 GV) per station</td></tr>
-<tr><td>Field model</td><td>IGRF + {EXTERNAL_MODEL} with live inputs (NOAA SWPC, Kyoto WDC Dst, GFZ Kp), 1 % gyro-step Boris-Buneman integration</td></tr>
+<tr><td>Field model</td><td>IGRF + {EXTERNAL_MODEL} (with its built-in magnetopause), driven by live inputs:
+NOAA SWPC solar wind and IMF, Kyoto WDC Dst, GFZ Kp</td></tr>
+<tr><td>Integration model</td><td>Boris-Buneman, adaptive time step limited to 1 % of the gyro-period, with a
+0.001 % energy (β) check. Trajectories start at 20 km altitude and end on re-entry below 20 km, escape
+through the magnetopause, or after 100 R<sub>E</sub> of path</td></tr>
 <tr><td>Time per hour</td><td><b>≈ 1 minute for 15 stations</b> (median 54 s, range 49–79 s) · ≈ 30 s for 4 stations ·
 ≈ 2 s for the :35 check when nothing is missing</td></tr>
 <tr><td>Backfill</td><td>After an outage, missed hours (up to ~21 h back) are caught up at the same rate:
