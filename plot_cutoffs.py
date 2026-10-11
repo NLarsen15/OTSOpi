@@ -235,9 +235,9 @@ CSS = """
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
   td.key::after { content: " ★"; color: SERIES; }
   header.site { display: flex; align-items: center; gap: 16px; margin: 12px 0 4px; }
-  header.site img { height: 72px; width: auto; }
+  header.site img { height: 110px; width: auto; }
   header.site h1 { margin: 0; }
-  @media (max-width: 700px) { header.site img { height: 52px; } header.site h1 { font-size: 1.5em; } }
+  @media (max-width: 700px) { header.site img { height: 72px; } header.site h1 { font-size: 1.5em; } }
 """
 
 
@@ -282,14 +282,14 @@ ASYM_JS = r"""
 (async function () {
   const el = document.getElementById("asym");
   const slider = document.getElementById("asym-time");
-  const label = document.getElementById("asym-label");
+  const timeLabel = document.getElementById("asym-label");
   const play = document.getElementById("asym-play");
   const boxes = document.getElementById("asym-stations");
   let data;
   try {
     data = await (await fetch("asymptotic.json", {cache: "no-store"})).json();
-  } catch (e) { label.textContent = "No asymptotic data available"; return; }
-  if (!data.times.length) { label.textContent = "No asymptotic data in the last 7 days"; play.disabled = true; return; }
+  } catch (e) { timeLabel.textContent = "No asymptotic data available"; return; }
+  if (!data.times.length) { timeLabel.textContent = "No asymptotic data in the last 7 days"; play.disabled = true; return; }
 
   const allNames = __ALL_NAMES__;        // global order: a station keeps its shape on every page
   const names = __NAMES__.filter(n => n in data.stations);
@@ -307,14 +307,37 @@ ASYM_JS = r"""
   const narrow = window.matchMedia("(max-width: 700px)").matches;
   const shown = Object.fromEntries(names.map(n => [n, true]));
   const label = n => n.replace(/_/g, " ");
+  const single = __SINGLE__;   // true: one station at a time, chosen from a menu
+  let current = names[0];
 
-  names.forEach(name => {
+  if (single) {
+    const fromHash = decodeURIComponent(location.hash.slice(1));
+    if (names.includes(fromHash)) current = fromHash;
     const lab = document.createElement("label");
-    lab.className = "station-toggle";
-    lab.innerHTML = '<input type="checkbox" checked> <span aria-hidden="true">' + shapeOf(name)[1] + '</span> ' + label(name);
-    lab.querySelector("input").addEventListener("change", ev => { shown[name] = ev.target.checked; show(+slider.value); });
-    boxes.appendChild(lab);
-  });
+    lab.htmlFor = "asym-select"; lab.textContent = "Station";
+    const sel = document.createElement("select");
+    sel.id = "asym-select";
+    names.forEach(n => { const o = document.createElement("option"); o.value = n; o.textContent = shapeOf(n)[1] + " " + label(n); sel.appendChild(o); });
+    sel.value = current;
+    sel.addEventListener("change", () => {
+      current = sel.value; show(+slider.value);
+      window.dispatchEvent(new CustomEvent("otsopi:station", {detail: current}));
+    });
+    // Follow the station chosen in the cut-off chart / table.
+    window.addEventListener("otsopi:station", e => {
+      if (e.detail !== current && names.includes(e.detail)) { current = e.detail; sel.value = current; show(+slider.value); }
+    });
+    boxes.append(lab, sel);
+  } else {
+    names.forEach(name => {
+      const lab = document.createElement("label");
+      lab.className = "station-toggle";
+      lab.innerHTML = '<input type="checkbox" checked> <span aria-hidden="true">' + shapeOf(name)[1] + '</span> ' + label(name);
+      lab.querySelector("input").addEventListener("change", ev => { shown[name] = ev.target.checked; show(+slider.value); });
+      boxes.appendChild(lab);
+    });
+  }
+  const isShown = n => single ? n === current : shown[n];
 
   const colorbar = Object.assign({tickvals: [0, 0.5, 1, 1.5, 2], ticktext: ["1", "3", "10", "30", "100"],
                                   outlinewidth: 0, tickcolor: "__TEXT2__"},
@@ -325,7 +348,7 @@ ASYM_JS = r"""
   function traces(t) {
     const out = [];
     names.forEach(name => {
-      const st = data.stations[name], visible = shown[name], sym = shapeOf(name)[0];
+      const st = data.stations[name], visible = isShown(name), sym = shapeOf(name)[0];
       out.push({type: "scattergeo", mode: "markers", lat: st.lat[t], lon: st.lon[t], text: hoverR, visible,
                 marker: {symbol: sym, size: 8, color: logR, colorscale: ramp, cmin: 0, cmax: 2,
                          line: {width: 0}, showscale: false, colorbar},
@@ -337,7 +360,7 @@ ASYM_JS = r"""
                 showlegend: false});
     });
     // One colour bar, on the first visible station.
-    const firstShown = names.findIndex(n => shown[n]);
+    const firstShown = names.findIndex(isShown);
     out.forEach((tr, k) => { if (k % 2 === 0) tr.marker.showscale = (k / 2 === firstShown); });
     return out;
   }
@@ -356,7 +379,7 @@ ASYM_JS = r"""
   slider.max = data.times.length - 1;
   slider.value = data.times.length - 1;
   function show(t) {
-    label.textContent = data.times[t].slice(0, 16) + " UTC";
+    timeLabel.textContent = data.times[t].slice(0, 16) + " UTC";
     Plotly.react(el, traces(t), layout, {responsive: true, displaylogo: false});
   }
   show(+slider.value);
@@ -426,12 +449,18 @@ CUT_JS = r"""
     };
     Plotly.react(el, traces, layout, {responsive: true, displaylogo: false});
   }
-  sel.addEventListener("change", () => { history.replaceState(null, "", "#" + encodeURIComponent(sel.value)); draw(); });
+  const announce = () => window.dispatchEvent(new CustomEvent("otsopi:station", {detail: sel.value}));
+  sel.addEventListener("change", () => { history.replaceState(null, "", "#" + encodeURIComponent(sel.value)); draw(); announce(); });
+  window.addEventListener("otsopi:station", e => {
+    if (e.detail !== sel.value && data.names.includes(e.detail)) {
+      sel.value = e.detail; history.replaceState(null, "", "#" + encodeURIComponent(sel.value)); draw();
+    }
+  });
   [[bH, "hourly"], [bD, "daily"]].forEach(([b, m]) => b.addEventListener("click", () => {
     mode = m; bH.setAttribute("aria-pressed", m === "hourly"); bD.setAttribute("aria-pressed", m === "daily"); draw();
   }));
   window.addEventListener("hashchange", () => {
-    const n = decodeURIComponent(location.hash.slice(1)); if (data.names.includes(n)) { sel.value = n; draw(); }
+    const n = decodeURIComponent(location.hash.slice(1)); if (data.names.includes(n)) { sel.value = n; draw(); announce(); }
   });
   draw();
 })();
@@ -450,10 +479,10 @@ def colour_tokens() -> dict:
     return dict(SURFACE=SURFACE, TEXT2=TEXT_SECONDARY, TEXT=TEXT_PRIMARY, GRID=GRID, LAND=LAND, SERIES=SERIES)
 
 
-def asym_section(names: list) -> str:
+def asym_section(names: list, single: bool = False) -> str:
     ramp = json.dumps([[i / (len(ASYM_RAMP) - 1), c] for i, c in enumerate(ASYM_RAMP)])
     return fill(ASYM_JS, ALL_NAMES=json.dumps(list(STATIONS)), NAMES=json.dumps(names), RAMP=ramp,
-                **colour_tokens())
+                SINGLE="true" if single else "false", **colour_tokens())
 
 
 def series(df: pd.DataFrame, col: str) -> list:
@@ -534,10 +563,12 @@ def main() -> int:
     with open(os.path.join(out_dir, "cutoffs.json"), "w") as f:
         json.dump(cutoffs_payload(hourly_frames, daily_frames), f, separators=(",", ":"))
 
-    asym_intro = """<p>Direction (geographic coordinates) from which particles arriving vertically at each station come
+    asym_text = """<p>Direction (geographic coordinates) from which particles arriving vertically at each station come
 from outside the magnetosphere, for rigidities from the station's upper cut-off Ru up to 100 GV;
 colour shows rigidity and marker shape the station (its location is the black marker of the same shape).
-Tick stations on or off, drag the slider (or use the arrow keys) or press Play; hover a point for details.</p>"""
+{how} Drag the slider (or use the arrow keys) or press Play; hover a point for details.</p>"""
+    asym_intro = asym_text.format(how="Tick stations on or off.")
+    asym_intro_single = asym_text.format(how="Choose a station (the chart above and the table follow the same choice).")
     plotly = f'<script src="{PLOTLY_JS}"></script>'
 
     page(os.path.join(out_dir, "index.html"), "Neutron monitor cut-offs", "index.html", f"""
@@ -569,8 +600,8 @@ station to plot it.</p>
 {plotly}
 {fill(CUT_JS, **colour_tokens())}
 <h2>Asymptotic viewing directions, last 7 days</h2>
-{asym_intro}
-{asym_section(list(STATIONS))}
+{asym_intro_single}
+{asym_section(list(STATIONS), single=True)}
 """)
     return 0
 
