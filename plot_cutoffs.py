@@ -486,7 +486,7 @@ def overview_table(data: dict, end: datetime) -> str:
                     f"{week.min():.2f}–{week.max():.2f}", f"{t:%m-%d %H:%M}"]
         key = ' class="key"' if s["name"] in FEATURED else ""
         where = f"{abs(s['lat']):.2f}°{'N' if s['lat'] >= 0 else 'S'}, {abs(s['lon']):.2f}°{'E' if s['lon'] >= 0 else 'W'}"
-        code = s["code"] + (" (custom)" if s.get("custom") else "")
+        code = s["code"]
         rows.append(f'<tr><td{key}><a href="#{s["name"]}" onclick="document.getElementById(\'cut-station\').scrollIntoView()">'
                     f'{label(s["name"])}</a></td><td>{code}</td><td>{where}</td>' + "".join(f"<td>{v}</td>" for v in vals) + "</tr>")
     return ("""<div class="table-wrap"><table>
@@ -560,7 +560,7 @@ inputs) for the four key stations of {MERTENS}: {", ".join(label(n) for n in FEA
 <header class="site"><img src="otso_logo.png" alt="OTSO logo"><h1>All stations</h1></header>
 <p>{len(STATIONS)} neutron monitor stations, sorted by effective cut-off Rc. ★ marks the key stations
 shown on the <a href="index.html">landing page</a>. Values are for the latest computed hour; click a
-station to plot it. Custom stations are computed at their geographic coordinates.</p>
+station to plot it.</p>
 <p class="muted">Updated {end:%Y-%m-%d %H:%M} UTC. Rigidities in GV.</p>
 {overview_table(data, end)}
 <h2>Cut-off rigidity by station</h2>
