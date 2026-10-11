@@ -3,14 +3,29 @@
 # OTSOpi
 
 > [!NOTE]
-> **A hobby project.** I'm Nicholas Larsen, the developer of
-> [OTSO](https://github.com/NLarsen15/OTSOpy), and OTSOpi is a personal side
-> project I set up to test whether a **near-real-time database of geomagnetic
-> cut-off rigidities** is feasible. Can a single low-cost Raspberry Pi, running
-> OTSO on live space-weather data, keep an hourly record for neutron monitors
-> around the world up to date and publish it openly? The results are
-> experimental and provided as-is. Live inputs are provisional and may differ
-> from the final data, and the record may have gaps.
+> **A note on OTSOpi.** I developed [OTSO](https://github.com/NLarsen15/OTSOpy)
+> as an open-source tool for computing cut-off rigidities and asymptotic
+> directions for neutron monitors. OTSOpi, presented in this repository, is a
+> hobby project that uses OTSO's `livedata` option to compute near-real-time
+> cut-offs and asymptotic cones for a selection of neutron monitors, running on
+> a single Raspberry Pi. It's intended as a proof of concept for space-weather
+> monitoring. Up-to-date cut-off rigidities and asymptotic directions are rarely
+> provided alongside neutron monitor data, yet they're needed to interpret the
+> measurements, particularly during geomagnetic storms and ground-level
+> enhancements.
+>
+> The results are **preliminary** and should be used with that in mind. Each
+> hour is driven by real-time space-weather data:
+> - **Solar wind and interplanetary magnetic field (IMF):** NOAA Space Weather
+>   Prediction Center (SWPC), Real-Time Solar Wind
+> - **Dst index:** World Data Center for Geomagnetism, Kyoto, real-time Dst
+> - **Kp index:** GFZ Potsdam, Kp nowcast
+>
+> These real-time values are provisional and can be revised. The definitive
+> datasets (e.g. OMNI, final Dst and Kp) may differ, and so may cut-offs
+> computed from them. Each hour is computed about three hours after the fact, so
+> that these data are available. The record may have gaps when the data feeds
+> or the Pi are unavailable.
 
 ![Vertical cut-off rigidity, last 7 days](https://nlarsen15.github.io/OTSOpi/all_stations_7d.png)
 
@@ -173,6 +188,28 @@ The :35 run is a quick retry: it does nothing unless an hour is missing (e.g. af
 network dropout). If the live data can't be downloaded, a run stops at the first
 failure and leaves the remaining hours for the next run.
 
+## Get in touch
+
+OTSOpi is a temporary, experimental setup rather than a long-term service.
+Ideally, near-real-time cut-off rigidities and asymptotic directions would be
+provided by a permanent database for such computations, maintained alongside
+neutron monitor data. I hope this project helps show that one is feasible.
+
+In the meantime, please get in touch if:
+
+- you're part of a team running a cosmic-ray detector and would like to set up
+  your own OTSOpi (or something similar) for it, or
+- you'd like a station added to the computations here.
+
 ## License
 
 GPL-3.0, see [LICENSE](LICENSE).
+
+## References
+
+- **Larsen, N., Mishev, A., & Usoskin, I. (2023).** A new open-source geomagnetosphere
+  propagation tool (OTSO) and its applications. *Journal of Geophysical Research:
+  Space Physics*, 128, e2022JA031061. https://doi.org/10.1029/2022JA031061
+- **Mertens, C. J., Gronoff, G. P., & Phoenix, D. B. (2025).** NAIRAS Version 3
+  atmospheric ionizing radiation validation: Comparisons to RaD‐X measurements.
+  *Space Weather*, 23(4), e2024SW004296. https://doi.org/10.1029/2024SW004296
