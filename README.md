@@ -3,13 +3,14 @@
 # OTSOpi
 
 > [!NOTE]
-> **A hobby project.** OTSOpi is a personal side project by Nicholas Larsen, the
-> developer of [OTSO](https://github.com/NLarsen15/OTSOpy), to test whether a
-> **near-real-time database of geomagnetic cut-off rigidities** is feasible. Can a
-> single low-cost Raspberry Pi, running OTSO on live space-weather data, keep an
-> hourly record for neutron monitors around the world up to date and publish it
-> openly? The results are experimental and provided as-is. Live inputs are
-> provisional and may differ from the final data, and the record may have gaps.
+> **A hobby project.** I'm Nicholas Larsen, the developer of
+> [OTSO](https://github.com/NLarsen15/OTSOpy), and OTSOpi is a personal side
+> project I set up to test whether a **near-real-time database of geomagnetic
+> cut-off rigidities** is feasible. Can a single low-cost Raspberry Pi, running
+> OTSO on live space-weather data, keep an hourly record for neutron monitors
+> around the world up to date and publish it openly? The results are
+> experimental and provided as-is. Live inputs are provisional and may differ
+> from the final data, and the record may have gaps.
 
 ![Vertical cut-off rigidity, last 7 days](https://nlarsen15.github.io/OTSOpi/all_stations_7d.png)
 
